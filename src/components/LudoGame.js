@@ -63,11 +63,12 @@ function computeBoardIndex(color, steps) {
 }
 
 /**
- * Get the next active player in turn order
+ * Get the next active player in turn order.
+ * Only cycles through players who have actually joined the room.
  */
 function getNextPlayer(currentColor, activePlayers) {
   if (!activePlayers || activePlayers.length === 0) {
-    activePlayers = PLAYER_COLORS;
+    return currentColor; // No other players, stay with current
   }
   const currentIndex = activePlayers.indexOf(currentColor);
   const nextIndex = (currentIndex + 1) % activePlayers.length;
@@ -246,7 +247,7 @@ export default function LudoGame({ playerColor, roomId, numPlayers = 4 }) {
         console.log("❌ No valid moves - will skip turn in 1.5s");
         // No valid moves - show dice for 1.5 seconds then skip to next player
         setTimeout(async () => {
-          const activePlayers = gameState.activePlayers || PLAYER_COLORS;
+          const activePlayers = gameState.activePlayers || [];
           const nextTurn = getNextPlayer(playerColor, activePlayers);
           console.log(`⏭️ Skipping to next player: ${nextTurn}`);
           try {
@@ -386,7 +387,7 @@ export default function LudoGame({ playerColor, roomId, numPlayers = 4 }) {
             `🎲 Extra turn! (rolled 6=${dice === 6}, captured=${captured})`
           );
         } else {
-          const activePlayers = gameState.activePlayers || PLAYER_COLORS;
+          const activePlayers = gameState.activePlayers || [];
           nextTurn = getNextPlayer(playerColor, activePlayers);
           console.log(`⏭️ Next turn: ${nextTurn}`);
         }
@@ -447,7 +448,7 @@ export default function LudoGame({ playerColor, roomId, numPlayers = 4 }) {
     if (gameState.diceValue === null) return;
 
     const roomRef = doc(db, "games", roomId);
-    const activePlayers = gameState.activePlayers || PLAYER_COLORS;
+    const activePlayers = gameState.activePlayers || [];
     const nextTurn = getNextPlayer(playerColor, activePlayers);
 
     try {
