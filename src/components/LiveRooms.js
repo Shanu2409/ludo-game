@@ -60,10 +60,15 @@ export default function LiveRooms({ onJoinRoom }) {
 
   // Count active players in a room
   const getActivePlayersCount = (room) => {
-    if (!room.players) return 0;
-    return Object.values(room.players).filter((player) =>
-      player.tokens.some((token) => token.steps >= 0)
-    ).length;
+    if (!room.activePlayers) return 0;
+    return room.activePlayers.length;
+  };
+
+  // Check if room is full
+  const isRoomFull = (room) => {
+    if (!room.activePlayers) return false;
+    // A room can have maximum 4 players
+    return room.activePlayers.length >= 4;
   };
 
   // Get current turn color name
@@ -161,7 +166,8 @@ export default function LiveRooms({ onJoinRoom }) {
                   <div className="room-info">
                     <span className="info-label">Players:</span>
                     <span className="info-value">
-                      {room.activePlayers ? room.activePlayers.length : 4}
+                      {getActivePlayersCount(room)}/4
+                      {isRoomFull(room) && " (Full)"}
                     </span>
                   </div>
                 </div>
@@ -169,8 +175,13 @@ export default function LiveRooms({ onJoinRoom }) {
                 <button
                   className="join-room-btn"
                   onClick={() => onJoinRoom(room.id)}
+                  disabled={isRoomFull(room)}
+                  style={{
+                    opacity: isRoomFull(room) ? 0.5 : 1,
+                    cursor: isRoomFull(room) ? "not-allowed" : "pointer",
+                  }}
                 >
-                  Join Room
+                  {isRoomFull(room) ? "Room Full" : "Join Room"}
                 </button>
               </motion.div>
             ))}
