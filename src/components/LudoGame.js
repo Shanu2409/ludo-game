@@ -95,6 +95,19 @@ export default function LudoGame({ playerColor, roomId, numPlayers = 4 }) {
         if (!snap.exists()) {
           // Initialise a new game document if it does not exist.
           await setDoc(roomRef, createInitialGameState(numPlayers));
+        } else {
+          // Room exists - add this player to activePlayers if not already there
+          const roomData = snap.data();
+          const activePlayers = roomData.activePlayers || [];
+          
+          if (!activePlayers.includes(playerColor)) {
+            // Add this player to the active players list
+            const updatedActivePlayers = [...activePlayers, playerColor];
+            await updateDoc(roomRef, {
+              activePlayers: updatedActivePlayers,
+              [`players.${playerColor}.isActive`]: true,
+            });
+          }
         }
         // Subscribe to realtime updates.  Every time the document
         // changes we update local state.
@@ -121,7 +134,7 @@ export default function LudoGame({ playerColor, roomId, numPlayers = 4 }) {
     return () => {
       if (unsub) unsub();
     };
-  }, [roomId, numPlayers]);
+  }, [roomId, numPlayers, playerColor]);
 
   /**
    * Check if the current player has any valid moves with the given dice value

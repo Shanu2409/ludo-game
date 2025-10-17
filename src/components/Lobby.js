@@ -7,7 +7,6 @@ import "../styles.css";
  */
 export default function Lobby({ onJoinGame }) {
   const [roomId, setRoomId] = useState("");
-  const [playerColor, setPlayerColor] = useState("red");
   const [showJoin, setShowJoin] = useState(false);
   const [numPlayers, setNumPlayers] = useState(4);
 
@@ -17,23 +16,23 @@ export default function Lobby({ onJoinGame }) {
 
   const handleCreateRoom = () => {
     const newRoomId = generateRoomId();
-    onJoinGame(playerColor, newRoomId, numPlayers);
+    onJoinGame(newRoomId, numPlayers);
   };
 
   const handleJoinRoom = () => {
     if (roomId.trim()) {
-      onJoinGame(playerColor, roomId.trim(), numPlayers);
+      onJoinGame(roomId.trim(), numPlayers);
     } else {
       alert("Please enter a room ID");
     }
   };
 
   const handleQuickPlay = () => {
-    onJoinGame(playerColor, "quick-play", numPlayers);
+    onJoinGame("quick-play", numPlayers);
   };
 
   const handleJoinLiveRoom = (roomId) => {
-    onJoinGame(playerColor, roomId, numPlayers);
+    onJoinGame(roomId, numPlayers);
   };
 
   return (
@@ -65,27 +64,12 @@ export default function Lobby({ onJoinGame }) {
               </div>
             </div>
 
-            {/* Player Color Selection */}
+            {/* Auto Color Assignment Info */}
             <div className="color-selection">
-              <h3>Choose Your Color</h3>
-              <div className="color-buttons">
-                {["red", "blue", "green", "yellow"].map((color) => (
-                  <button
-                    key={color}
-                    className={`color-btn ${
-                      playerColor === color ? "selected" : ""
-                    }`}
-                    style={{
-                      backgroundColor: color,
-                      borderColor:
-                        playerColor === color ? "#fff" : "transparent",
-                    }}
-                    onClick={() => setPlayerColor(color)}
-                  >
-                    {color.charAt(0).toUpperCase() + color.slice(1)}
-                  </button>
-                ))}
-              </div>
+              <h3>🎨 Color Assignment</h3>
+              <p style={{ fontSize: "0.9rem", color: "#666", margin: "0.5rem 0" }}>
+                Your color will be automatically assigned when you join a room
+              </p>
             </div>
 
             {/* Game Options */}

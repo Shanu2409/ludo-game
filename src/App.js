@@ -3,6 +3,8 @@ import { useMemo } from "react";
 import LudoGame from "./components/LudoGame";
 import FirebaseTest from "./components/FirebaseTest";
 import Lobby from "./components/Lobby";
+import { db } from "./firebase";
+import { doc, getDoc } from "firebase/firestore";
 
 /**
  * Parse a query string into an object.
@@ -72,13 +74,43 @@ export default function App() {
     );
   }
 
-  const handleJoinGame = (playerColor, roomId, numPlayers = 4) => {
-    // Update URL without reloading
-    const newUrl = `${window.location.pathname}?player=${playerColor}&room=${roomId}&numPlayers=${numPlayers}`;
-    window.history.pushState({}, "", newUrl);
+  const handleJoinGame = async (roomId, numPlayers = 4) => {
+    try {
+      // Check if room exists and get available colors
+      const roomRef = doc(db, "games", roomId);
+      const roomSnap = await getDoc(roomRef);
+      
+      let assignedColor = null;
+      const availableColors = ["red", "blue", "green", "yellow"];
+      
+      if (roomSnap.exists()) {
+        // Room exists - find an available color
+        const roomData = roomSnap.data();
+        const activePlayers = roomData.activePlayers || [];
+        
+        // Find the first color that's not already taken
+        assignedColor = availableColors.find(color => !activePlayers.includes(color));
+        
+        if (!assignedColor) {
+          // All colors are taken
+          alert("This room is full! All player slots are occupied. Please try another room or create a new one.");
+          return;
+        }
+      } else {
+        // New room - assign the first color (red)
+        assignedColor = availableColors[0];
+      }
+      
+      // Update URL without reloading
+      const newUrl = `${window.location.pathname}?player=${assignedColor}&room=${roomId}&numPlayers=${numPlayers}`;
+      window.history.pushState({}, "", newUrl);
 
-    setGameSettings({ playerColor, roomId, numPlayers });
-    setInLobby(false);
+      setGameSettings({ playerColor: assignedColor, roomId, numPlayers });
+      setInLobby(false);
+    } catch (err) {
+      console.error("Error joining game:", err);
+      alert("Failed to join the game. Please check your connection and try again.");
+    }
   };
 
   if (inLobby) {
