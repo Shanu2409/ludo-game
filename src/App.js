@@ -56,10 +56,20 @@ export default function App() {
           if (roomSnap.exists()) {
             const roomData = roomSnap.data();
             const activePlayers = roomData.activePlayers || [];
+            const roomNumPlayers = roomData.numPlayers || 4;
+            
+            // Check if room is full
+            if (activePlayers.length >= roomNumPlayers) {
+              alert("This room is full! All player slots are occupied.");
+              setInLobby(true);
+              return;
+            }
+            
+            // Available colors limited by room's player count
+            const availableColors = ["red", "blue", "green", "yellow"].slice(0, roomNumPlayers);
             
             // If requested color is taken, find an available one
             if (requestedColor && activePlayers.includes(requestedColor)) {
-              const availableColors = ["red", "blue", "green", "yellow"];
               const availableColor = availableColors.find(color => !activePlayers.includes(color));
               
               if (availableColor) {
@@ -72,7 +82,6 @@ export default function App() {
               }
             } else if (!requestedColor) {
               // No color requested, find an available one
-              const availableColors = ["red", "blue", "green", "yellow"];
               const availableColor = availableColors.find(color => !activePlayers.includes(color));
               
               if (availableColor) {
@@ -132,9 +141,17 @@ export default function App() {
         // Room exists - find an available color
         const roomData = roomSnap.data();
         const activePlayers = roomData.activePlayers || [];
+        const roomNumPlayers = roomData.numPlayers || 4;
         
-        // Find the first color that's not already taken
-        assignedColor = availableColors.find(color => !activePlayers.includes(color));
+        // Check if room is full based on its player limit
+        if (activePlayers.length >= roomNumPlayers) {
+          alert("This room is full! All player slots are occupied. Please try another room or create a new one.");
+          return;
+        }
+        
+        // Find the first color that's not already taken (limited by room's player count)
+        const availableColorsForRoom = availableColors.slice(0, roomNumPlayers);
+        assignedColor = availableColorsForRoom.find(color => !activePlayers.includes(color));
         
         if (!assignedColor) {
           // All colors are taken

@@ -67,8 +67,9 @@ export default function LiveRooms({ onJoinRoom }) {
   // Check if room is full
   const isRoomFull = (room) => {
     if (!room.activePlayers) return false;
-    // A room can have maximum 4 players
-    return room.activePlayers.length >= 4;
+    // A room is full when it reaches its intended player count
+    const maxPlayers = room.numPlayers || 4;
+    return room.activePlayers.length >= maxPlayers;
   };
 
   // Get current turn color name
@@ -166,7 +167,7 @@ export default function LiveRooms({ onJoinRoom }) {
                   <div className="room-info">
                     <span className="info-label">Players:</span>
                     <span className="info-value">
-                      {getActivePlayersCount(room)}/4
+                      {getActivePlayersCount(room)}/{room.numPlayers || 4}
                       {isRoomFull(room) && " (Full)"}
                     </span>
                   </div>
