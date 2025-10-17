@@ -39,19 +39,64 @@ export default function App() {
   useEffect(() => {
     // If URL has player and room params, skip lobby
     if (player && room) {
-      const playerColour =
-        player &&
-        ["red", "blue", "green", "yellow"].includes(player.toLowerCase())
-          ? player.toLowerCase()
-          : "red";
+      const requestedColor = player && ["red", "blue", "green", "yellow"].includes(player.toLowerCase())
+        ? player.toLowerCase()
+        : null;
       const roomId = room || "default-room";
       const playerCount = numPlayers ? parseInt(numPlayers) : 4;
-      setGameSettings({
-        playerColor: playerColour,
-        roomId,
-        numPlayers: playerCount,
-      });
-      setInLobby(false);
+      
+      // Validate the color is available in the room
+      (async () => {
+        try {
+          const roomRef = doc(db, "games", roomId);
+          const roomSnap = await getDoc(roomRef);
+          
+          let finalColor = requestedColor || "red";
+          
+          if (roomSnap.exists()) {
+            const roomData = roomSnap.data();
+            const activePlayers = roomData.activePlayers || [];
+            
+            // If requested color is taken, find an available one
+            if (requestedColor && activePlayers.includes(requestedColor)) {
+              const availableColors = ["red", "blue", "green", "yellow"];
+              const availableColor = availableColors.find(color => !activePlayers.includes(color));
+              
+              if (availableColor) {
+                finalColor = availableColor;
+                console.log(`Requested color ${requestedColor} is taken, assigned ${finalColor} instead`);
+              } else {
+                alert("This room is full! All player slots are occupied.");
+                setInLobby(true);
+                return;
+              }
+            } else if (!requestedColor) {
+              // No color requested, find an available one
+              const availableColors = ["red", "blue", "green", "yellow"];
+              const availableColor = availableColors.find(color => !activePlayers.includes(color));
+              
+              if (availableColor) {
+                finalColor = availableColor;
+              } else {
+                alert("This room is full! All player slots are occupied.");
+                setInLobby(true);
+                return;
+              }
+            }
+          }
+          
+          setGameSettings({
+            playerColor: finalColor,
+            roomId,
+            numPlayers: playerCount,
+          });
+          setInLobby(false);
+        } catch (err) {
+          console.error("Error validating room:", err);
+          // Fallback to lobby on error
+          setInLobby(true);
+        }
+      })();
     }
   }, [player, room, numPlayers]);
 
