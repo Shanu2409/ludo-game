@@ -28,25 +28,28 @@ const HOME_STEPS = 6;
  * Create an initial game state object.  Each player starts with four
  * tokens in the base (represented as `steps = -1`).  The first turn
  * belongs to the red player.  `diceValue` is null until a roll occurs.
+ * 
+ * Note: activePlayers starts empty and gets populated as players join the room.
+ * This allows the game to work with any number of players (2, 3, or 4).
  */
 function createInitialGameState(numPlayers = 4) {
   const players = {};
-  const activePlayers = PLAYER_COLORS.slice(0, numPlayers);
 
   PLAYER_COLORS.forEach((color) => {
     players[color] = {
       tokens: Array.from({ length: 4 }, () => ({ steps: -1 })),
-      isActive: activePlayers.includes(color),
+      isActive: false,
     };
   });
 
   return {
     players,
-    currentTurn: activePlayers[0],
+    currentTurn: null, // Will be set when first player joins
     diceValue: null,
     forceNumber: null,
     winner: null,
-    activePlayers,
+    activePlayers: [], // Start empty, populate as players join
+    numPlayers, // Store the intended number of players
   };
 }
 
@@ -103,10 +106,17 @@ export default function LudoGame({ playerColor, roomId, numPlayers = 4 }) {
           if (!activePlayers.includes(playerColor)) {
             // Add this player to the active players list
             const updatedActivePlayers = [...activePlayers, playerColor];
-            await updateDoc(roomRef, {
+            const updates = {
               activePlayers: updatedActivePlayers,
               [`players.${playerColor}.isActive`]: true,
-            });
+            };
+            
+            // If this is the first player joining, set them as current turn
+            if (activePlayers.length === 0) {
+              updates.currentTurn = playerColor;
+            }
+            
+            await updateDoc(roomRef, updates);
           }
         }
         // Subscribe to realtime updates.  Every time the document
@@ -634,7 +644,9 @@ export default function LudoGame({ playerColor, roomId, numPlayers = 4 }) {
   const handleRestart = async () => {
     const roomRef = doc(db, "games", roomId);
     try {
-      await setDoc(roomRef, createInitialGameState());
+      // Preserve the numPlayers setting when restarting
+      const currentNumPlayers = gameState.numPlayers || numPlayers || 4;
+      await setDoc(roomRef, createInitialGameState(currentNumPlayers));
     } catch (err) {
       console.error("Error restarting game:", err);
       alert("Failed to restart game. Please check your connection.");
@@ -730,15 +742,21 @@ export default function LudoGame({ playerColor, roomId, numPlayers = 4 }) {
           {/* Board Container - Turn indicator and board */}
           <div className="board-container">
             <div className="turn-indicator">
-              <span
-                className="player-dot"
-                style={{ backgroundColor: gameState.currentTurn }}
-              ></span>
-              <span>
-                {gameState.currentTurn.charAt(0).toUpperCase() +
-                  gameState.currentTurn.slice(1)}
-                's Turn
-              </span>
+              {gameState.currentTurn ? (
+                <>
+                  <span
+                    className="player-dot"
+                    style={{ backgroundColor: gameState.currentTurn }}
+                  ></span>
+                  <span>
+                    {gameState.currentTurn.charAt(0).toUpperCase() +
+                      gameState.currentTurn.slice(1)}
+                    's Turn
+                  </span>
+                </>
+              ) : (
+                <span>Waiting for players to join...</span>
+              )}
             </div>
 
             <div className="board-wrapper">
@@ -784,29 +802,37 @@ export default function LudoGame({ playerColor, roomId, numPlayers = 4 }) {
             />
 
             <div className="players-list">
-              {PLAYER_COLORS.map((color) => (
-                <div
-                  key={color}
-                  className={`player-card ${
-                    gameState.currentTurn === color ? "active" : ""
-                  }`}
-                  style={{
-                    borderColor:
-                      gameState.currentTurn === color ? color : "transparent",
-                  }}
-                >
+              {PLAYER_COLORS.slice(0, gameState.numPlayers || 4).map((color) => {
+                const isJoined = gameState.activePlayers.includes(color);
+                return (
                   <div
-                    className="player-color"
-                    style={{ backgroundColor: color }}
-                  ></div>
-                  <div className="player-info">
-                    <div className="player-name">{color} Player</div>
-                    <div className="player-status">
-                      {getTokensAtHome(color)}/4 tokens finished
+                    key={color}
+                    className={`player-card ${
+                      gameState.currentTurn === color ? "active" : ""
+                    }`}
+                    style={{
+                      borderColor:
+                        gameState.currentTurn === color ? color : "transparent",
+                      opacity: isJoined ? 1 : 0.5,
+                    }}
+                  >
+                    <div
+                      className="player-color"
+                      style={{ backgroundColor: color }}
+                    ></div>
+                    <div className="player-info">
+                      <div className="player-name">
+                        {color} Player {!isJoined && "(Waiting)"}
+                      </div>
+                      <div className="player-status">
+                        {isJoined
+                          ? `${getTokensAtHome(color)}/4 tokens finished`
+                          : "Not joined yet"}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
